@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agile RM Q2 — Transformation Dashboard</title>
+  <meta name="description" content="Agile Release Management Q2 — Sprint планирование трансформации банка">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="h-left">
+      <div class="logo">A</div>
+      <div>
+        <h1>Agile RM · Q2 2026</h1>
+        <div class="h-sub">Release Management — Команда трансформации</div>
+      </div>
+    </div>
+    <div class="h-right">
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="roadmap" onclick="App.switchView('roadmap')">📊 Roadmap</button>
+        <button class="view-btn" data-view="kanban" onclick="App.switchView('kanban')">📋 Sprint</button>
+      </div>
+      <button class="btn" onclick="App.openAddModal()">＋ Задача</button>
+      <button class="btn btn-sm" id="theme-toggle" onclick="App.toggleTheme()" title="Тема">🌙</button>
+      <button class="btn btn-sm" onclick="App.toggleDebug()" title="Debug">🛠</button>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <section class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Q2 Прогресс</div>
+      <div class="kpi-val" id="kpi-q2-pct">0%</div>
+      <div class="kpi-detail" id="kpi-q2-detail">—</div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" id="kpi-q2-bar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label" id="kpi-sprint-name">Sprint</div>
+      <div class="kpi-val" id="kpi-sprint-pct">0%</div>
+      <div class="kpi-detail" id="kpi-sprint-detail">—</div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" id="kpi-sprint-bar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Заблокировано</div>
+      <div class="kpi-val" id="kpi-blocked">0</div>
+      <div class="kpi-detail">требуют внимания</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Всего задач</div>
+      <div class="kpi-val" id="kpi-initiatives">0</div>
+      <div class="kpi-detail">в Q2 roadmap</div>
+    </div>
+  </section>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="chip">👤 <select id="f-member" onchange="App.setFilter('member',this.value)"><option value="all">Все участники</option></select></div>
+    <div class="chip">🎯 <select id="f-stream" onchange="App.setFilter('stream',this.value)"><option value="all">Все направления</option></select></div>
+    <div class="chip">📅 <select id="f-sprint" onchange="App.setFilter('sprint',this.value)"><option value="all">Все спринты</option></select></div>
+    <div class="chip">📌 <select id="f-status" onchange="App.setFilter('status',this.value)">
+      <option value="all">Все статусы</option>
+      <option value="planned">Запланировано</option>
+      <option value="in_progress">В работе</option>
+      <option value="done">Готово</option>
+      <option value="blocked">Заблокировано</option>
+    </select></div>
+    <div class="chip chip-reset" onclick="App.resetFilters()">✕ Сбросить</div>
+  </div>
+
+  <!-- Board Content -->
+  <div id="board"></div>
+
+  <!-- Side Panel -->
+  <div id="side-panel"></div>
+
+  <!-- Add Task Modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)App.closeModal()">
+    <div class="modal">
+      <div class="modal-hdr">
+        <h2 id="modal-title">Новая задача</h2>
+        <button class="modal-x" onclick="App.closeModal()">✕</button>
+      </div>
+      <form id="task-form" class="modal-body" onsubmit="App.saveTask(event)">
+        <div class="fg">
+          <label class="fl">Название задачи</label>
+          <input class="fi" id="f-name" required placeholder="Что нужно сделать?">
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Направление</label>
+            <select class="fs" id="f-initiative"></select>
+          </div>
+          <div class="fg">
+            <label class="fl">Статус</label>
+            <select class="fs" id="f-task-status">
+              <option value="planned">📥 Запланировано</option>
+              <option value="in_progress">🔄 В работе</option>
+              <option value="done">✅ Готово</option>
+              <option value="blocked">⛔ Заблокировано</option>
+            </select>
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Спринт (начало)</label>
+            <select class="fs" id="f-s1"></select>
+          </div>
+          <div class="fg">
+            <label class="fl">Спринт (конец)</label>
+            <select class="fs" id="f-s2"></select>
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label class="fl">Исполнители</label>
+            <select class="fs" id="f-assignee" multiple size="4"></select>
+          </div>
+          <div class="fg">
+            <label class="fl">Прогресс</label>
+            <input class="fi" id="f-progress" type="number" min="0" max="100" value="0" step="5">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" onclick="App.closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Debug Panel -->
+  <div id="debug-panel" class="debug-panel" style="display:none">
+    <div class="debug-hdr">🛠 Debug <button onclick="App.toggleDebug()" class="modal-x">✕</button></div>
+    <div class="debug-stats" id="debug-stats"></div>
+    <pre class="debug-json" id="debug-json"></pre>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast-box" id="toasts"></div>
+
+  <!-- Scripts: data first, then app -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
