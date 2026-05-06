@@ -145,5 +145,26 @@
   <!-- Scripts: data first, then app -->
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+  apiKey: "AIzaSyA_nqjlFEVfJNBtyT8HH-4RluJ2FHNFonY",
+  authDomain: "agile-dashboard-f1cde.firebaseapp.com",
+  projectId: "agile-dashboard-f1cde",
+  storageBucket: "agile-dashboard-f1cde.firebasestorage.app",
+  messagingSenderId: "927921816060",
+  appId: "1:927921816060:web:c2b20864dc0ac8e166b279",
+  measurementId: "G-Q2BQYM5JKW"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.db = db;
+
+  console.log("Firebase connected");
+</script>
 </body>
 </html>
