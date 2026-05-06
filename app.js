@@ -2,13 +2,7 @@
 // Agile RM Q2 — State-Driven Application Logic
 // ═══════════════════════════════════════════════
 
-import {
-  collection,
-  addDoc,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-window.App = {
+const App = {
   // ── Central Store ──
   store: { initiatives:[], tasks:[], sprints:[], members:[], streams:[] },
   view: 'roadmap',
@@ -21,11 +15,15 @@ window.App = {
   _dataVersion: 6, // v6: sync resets empty initiatives
 
   init() {
+    this.store.members = JSON.parse(JSON.stringify(DATA.members));
+    this.store.streams = JSON.parse(JSON.stringify(DATA.streams));
+    this.store.sprints = JSON.parse(JSON.stringify(DATA.sprints));
+    this.store.initiatives = JSON.parse(JSON.stringify(DATA.initiatives));
 
     setTimeout(() => {
-  listenTasks();
-}, 1000);
-    
+        listenTasks();
+    }, 1000);
+
     this.selectedSprint = this.curSprint;
     this.initTheme();
     this.populateFormSelects();
@@ -528,23 +526,15 @@ window.App = {
   },
 
   updateTaskStream(taskId, newStreamId) {
-    const task = this.store.tasks.find(t => t.id === taskId);
-    if (!task) return;
-    task.stream = newStreamId;
-    console.log('[Store] updateTaskStream:', taskId, '->', newStreamId);
-    this.saveStore();
-    this.updateUI();
+    if (!window.fs) return;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { stream: newStreamId });
     const s = this.stream(newStreamId);
     this.toast(`Задача перемещена в ${s?.name || newStreamId} ✓`);
   },
 
   updateTaskInitiative(taskId, newIniId) {
-    const task = this.store.tasks.find(t => t.id === taskId);
-    if (!task) return;
-    task.initiative_id = newIniId;
-    console.log('[Store] updateTaskInitiative:', taskId, '->', newIniId);
-    this.saveStore();
-    this.updateUI();
+    if (!window.fs) return;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { initiative_id: newIniId });
     if (newIniId) {
       const ini = this.store.initiatives.find(i => i.id === newIniId);
       this.toast(`Задача привязана к «${ini?.name}» ✓`);
@@ -555,63 +545,48 @@ window.App = {
 
   // ── Inline Edit Handlers ──
   updateAssignees(taskId) {
-    const task = this.store.tasks.find(t => t.id === taskId);
-    if (!task) return;
     const sel = document.getElementById('sp-assignees');
     const selected = Array.from(sel.selectedOptions).map(o => o.value);
     if (!selected.length) { this.toast('Выберите хотя бы одного исполнителя'); return; }
-    console.log('[Store] updateAssignees:', taskId, 'before:', task.assignees, 'after:', selected);
-    task.assignees = [...selected];
-    this.saveStore();
-    this.updateUI();
+    if (!window.fs) return;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { assignees: selected });
     this.toast(`Исполнители обновлены (${selected.length})`);
   },
 
   updateSprints(taskId) {
-    const task = this.store.tasks.find(t => t.id === taskId);
-    if (!task) return;
     const sel = document.getElementById('sp-sprints');
     const selected = Array.from(sel.selectedOptions).map(o => parseInt(o.value));
     if (!selected.length) { this.toast('Выберите хотя бы один спринт'); return; }
-    console.log('[Store] updateSprints:', taskId, 'before:', task.sprint_ids, 'after:', selected);
-    task.sprint_ids = [...selected].sort((a, b) => a - b);
-    this.saveStore();
-    this.updateUI();
-    this.toast(`Спринты обновлены: S${task.sprint_ids.join(',')}${task.sprint_ids.length > 1 ? ' 🔗 multi' : ''}`);
+    const sprint_ids = [...selected].sort((a, b) => a - b);
+    if (!window.fs) return;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { sprint_ids });
+    this.toast(`Спринты обновлены: S${sprint_ids.join(',')}${sprint_ids.length > 1 ? ' 🔗 multi' : ''}`);
   },
 
   updateProgress(taskId, val) {
-    const t = this.store.tasks.find(x => x.id === taskId);
-    if (t) { t.progress = parseInt(val); }
+    if (!window.fs) return;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { progress: parseInt(val) });
     const el = document.getElementById('prog-display');
     if (el) el.textContent = val + '%';
     const el2 = document.getElementById('prog-val');
     if (el2) el2.textContent = val + '%';
-    this.saveStore();
-    this.updateUI();
   },
 
   updateStatus(taskId, status) {
-    const t = this.store.tasks.find(x => x.id === taskId);
-    if (t) { t.status = status; if (status === 'done') t.progress = 100; }
-    this.saveStore();
-    this.updateUI();
+    if (!window.fs) return;
+    const updateData = { status };
+    if (status === 'done') updateData.progress = 100;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), updateData);
   },
 
   deleteTask(taskId) {
     const t = this.store.tasks.find(x => x.id === taskId);
     if (!t) { console.warn('deleteTask: task not found', taskId); return; }
     if (!confirm(`Удалить «${t.name}»?`)) return;
-    console.log('Deleting task:', taskId, t.name);
-    // 1. Remove from store
-    this.store.tasks = this.store.tasks.filter(x => x.id !== taskId);
-    // 2. Persist
-    this.saveStore();
-    // 3. Clear side panel state FIRST
+    if (!window.fs) return;
+    window.fs.deleteDoc(window.fs.doc(window.db, "tasks", taskId));
     this.sidePanel = null;
     document.getElementById('side-panel').classList.remove('open');
-    // 4. Full UI refresh
-    this.updateUI();
     this.toast(`Задача «${t.name}» удалена ✓`);
   },
 
@@ -637,10 +612,10 @@ window.App = {
     const task = this.store.tasks.find(t => t.id === this._dragId);
     if (!task) return;
     const newSt = e.currentTarget.dataset.status;
-    task.status = newSt;
-    if (newSt === 'done') task.progress = 100;
-    this.saveStore();
-    this.updateUI();
+    if (!window.fs) return;
+    const updateData = { status: newSt };
+    if (newSt === 'done') updateData.progress = 100;
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", task.id), updateData);
     this.toast(`«${task.name}» → ${this.statusLabel(newSt)}`);
   },
 
@@ -671,7 +646,6 @@ window.App = {
     if (!assignees.length) assignees.push(this.store.members[0].id);
 
     const task = {
-      id: this.genId(),
       initiative_id: '',
       stream: document.getElementById('f-initiative').value,
       name,
@@ -681,10 +655,10 @@ window.App = {
       progress: parseInt(document.getElementById('f-progress').value) || 0,
       deps: []
     };
-    await addDoc(collection(window.db, "tasks"), task);
-    this.saveStore();
+    if (window.fs) {
+      await window.fs.addDoc(window.fs.collection(window.db, "tasks"), task);
+    }
     this.closeModal();
-    this.updateUI();
     this.toast(`Задача «${name}» добавлена ✓`);
   },
 
@@ -789,21 +763,14 @@ window.App = {
 document.addEventListener('DOMContentLoaded', () => App.init());
 
 function listenTasks() {
-  onSnapshot(collection(window.db, "tasks"), (snapshot) => {
-
+  if (!window.fs || !window.db) return;
+  window.fs.onSnapshot(window.fs.collection(window.db, "tasks"), (snapshot) => {
     const tasks = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-
-    console.log("Realtime tasks:", tasks);
-
     App.store.tasks = tasks;
-
-    App.render();
+    App.updateUI();
   });
 }
-
-setTimeout(() => {
-  listenTasks();
-}, 1000);
+window.listenTasks = listenTasks;
