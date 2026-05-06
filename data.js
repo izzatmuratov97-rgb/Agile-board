@@ -62,5 +62,5 @@ const DATA = {
     {id:'i13',name:'Change Management Program',stream:'hr',owner:'tatyana',s1:1,s2:7,status:'in_progress',progress:30},
   ],
 
-  tasks: []
+tasks: [],
 };
