@@ -666,7 +666,7 @@ const App = {
     document.getElementById('modal-overlay').classList.remove('active');
   },
 
-  saveTask(e) {
+  async saveTask(e) {
     e.preventDefault();
     const name = document.getElementById('f-name').value.trim();
     if (!name) return;
@@ -690,7 +690,7 @@ const App = {
       progress: parseInt(document.getElementById('f-progress').value) || 0,
       deps: []
     };
-    this.store.tasks.push(task);
+    await addDoc(collection(window.db, "tasks"), task);
     this.saveStore();
     this.closeModal();
     this.updateUI();
