@@ -8,7 +8,7 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const App = {
+window.App = {
   // ── Central Store ──
   store: { initiatives:[], tasks:[], sprints:[], members:[], streams:[] },
   view: 'roadmap',
@@ -813,4 +813,6 @@ function listenTasks() {
   });
 }
 
-listenTasks();
+setTimeout(() => {
+  listenTasks();
+}, 1000);
