@@ -2,6 +2,12 @@
 // Agile RM Q2 — State-Driven Application Logic
 // ═══════════════════════════════════════════════
 
+import {
+  collection,
+  addDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 const App = {
   // ── Central Store ──
   store: { initiatives:[], tasks:[], sprints:[], members:[], streams:[] },
@@ -790,3 +796,21 @@ const App = {
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
+
+function listenTasks() {
+  onSnapshot(collection(window.db, "tasks"), (snapshot) => {
+
+    const tasks = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    console.log("Realtime tasks:", tasks);
+
+    App.store.tasks = tasks;
+
+    App.render();
+  });
+}
+
+listenTasks();
