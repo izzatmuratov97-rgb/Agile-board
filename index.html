@@ -161,6 +161,11 @@
 
     window.db = db; // чтобы использовать в app.js
     window.fs = { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot };
+
+    window.firebaseReady = true;
+    if (typeof window.listenTasks === 'function') {
+      window.listenTasks();
+    }
   </script>
 
   <!-- Scripts: data first, then app -->

@@ -20,10 +20,6 @@ const App = {
     this.store.sprints = JSON.parse(JSON.stringify(DATA.sprints));
     this.store.initiatives = JSON.parse(JSON.stringify(DATA.initiatives));
 
-    setTimeout(() => {
-        listenTasks();
-    }, 1000);
-
     this.selectedSprint = this.curSprint;
     this.initTheme();
     this.populateFormSelects();
@@ -763,14 +759,30 @@ const App = {
 document.addEventListener('DOMContentLoaded', () => App.init());
 
 function listenTasks() {
-  if (!window.fs || !window.db) return;
-  window.fs.onSnapshot(window.fs.collection(window.db, "tasks"), (snapshot) => {
-    const tasks = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    App.store.tasks = tasks;
-    App.updateUI();
-  });
+  if (!window.fs || !window.db) {
+    console.warn('[Store] listenTasks called but Firebase is not ready yet.');
+    return;
+  }
+  console.log('[Store] Subscribing to real-time tasks...');
+  window.fs.onSnapshot(
+    window.fs.collection(window.db, "tasks"),
+    (snapshot) => {
+      const tasks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      App.store.tasks = tasks;
+      App.updateUI();
+      console.log(`[Store] Synced ${tasks.length} tasks from Firebase`);
+    },
+    (error) => {
+      console.error('[Store] Error listening to tasks:', error);
+      App.toast('Ошибка синхронизации с базой данных ❗');
+    }
+  );
 }
 window.listenTasks = listenTasks;
+
+if (window.firebaseReady) {
+  listenTasks();
+}
