@@ -21,20 +21,11 @@ window.App = {
   _dataVersion: 6, // v6: sync resets empty initiatives
 
   init() {
-    const loaded = this.loadStore();
-    const stored = parseInt(localStorage.getItem(this._storageKey + '_v') || '0');
 
-    if (!loaded || stored < this._dataVersion) {
-      // Fresh load from DATA (first visit or data version changed)
-      console.log('[Store] Loading fresh data (v' + this._dataVersion + ', was v' + stored + ')');
-      this.store.members = JSON.parse(JSON.stringify(DATA.members));
-      this.store.streams = JSON.parse(JSON.stringify(DATA.streams));
-      this.store.sprints = JSON.parse(JSON.stringify(DATA.sprints));
-      this.store.initiatives = JSON.parse(JSON.stringify(DATA.initiatives));
-      this.store.tasks = JSON.parse(JSON.stringify(DATA.tasks));
-      localStorage.setItem(this._storageKey + '_v', String(this._dataVersion));
-      this.saveStore();
-    }
+    setTimeout(() => {
+  listenTasks();
+}, 1000);
+    
     this.selectedSprint = this.curSprint;
     this.initTheme();
     this.populateFormSelects();
