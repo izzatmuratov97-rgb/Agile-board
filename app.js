@@ -523,14 +523,18 @@ const App = {
 
   updateTaskStream(taskId, newStreamId) {
     if (!window.fs) return;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { stream: newStreamId });
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { stream: newStreamId })
+      .then(() => console.log('[Store] updateTaskStream success:', taskId, '->', newStreamId))
+      .catch(err => console.error('[Store] updateTaskStream error:', err));
     const s = this.stream(newStreamId);
     this.toast(`Задача перемещена в ${s?.name || newStreamId} ✓`);
   },
 
   updateTaskInitiative(taskId, newIniId) {
     if (!window.fs) return;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { initiative_id: newIniId });
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { initiative_id: newIniId })
+      .then(() => console.log('[Store] updateTaskInitiative success:', taskId, '->', newIniId))
+      .catch(err => console.error('[Store] updateTaskInitiative error:', err));
     if (newIniId) {
       const ini = this.store.initiatives.find(i => i.id === newIniId);
       this.toast(`Задача привязана к «${ini?.name}» ✓`);
@@ -545,7 +549,9 @@ const App = {
     const selected = Array.from(sel.selectedOptions).map(o => o.value);
     if (!selected.length) { this.toast('Выберите хотя бы одного исполнителя'); return; }
     if (!window.fs) return;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { assignees: selected });
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { assignees: selected })
+      .then(() => console.log('[Store] updateAssignees success:', taskId))
+      .catch(err => console.error('[Store] updateAssignees error:', err));
     this.toast(`Исполнители обновлены (${selected.length})`);
   },
 
@@ -555,13 +561,17 @@ const App = {
     if (!selected.length) { this.toast('Выберите хотя бы один спринт'); return; }
     const sprint_ids = [...selected].sort((a, b) => a - b);
     if (!window.fs) return;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { sprint_ids });
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { sprint_ids })
+      .then(() => console.log('[Store] updateSprints success:', taskId))
+      .catch(err => console.error('[Store] updateSprints error:', err));
     this.toast(`Спринты обновлены: S${sprint_ids.join(',')}${sprint_ids.length > 1 ? ' 🔗 multi' : ''}`);
   },
 
   updateProgress(taskId, val) {
     if (!window.fs) return;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { progress: parseInt(val) });
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), { progress: parseInt(val) })
+      .then(() => console.log('[Store] updateProgress success:', taskId, '->', val))
+      .catch(err => console.error('[Store] updateProgress error:', err));
     const el = document.getElementById('prog-display');
     if (el) el.textContent = val + '%';
     const el2 = document.getElementById('prog-val');
@@ -572,7 +582,9 @@ const App = {
     if (!window.fs) return;
     const updateData = { status };
     if (status === 'done') updateData.progress = 100;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), updateData);
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", taskId), updateData)
+      .then(() => console.log('[Store] updateStatus success:', taskId, '->', status))
+      .catch(err => console.error('[Store] updateStatus error:', err));
   },
 
   deleteTask(taskId) {
@@ -580,7 +592,9 @@ const App = {
     if (!t) { console.warn('deleteTask: task not found', taskId); return; }
     if (!confirm(`Удалить «${t.name}»?`)) return;
     if (!window.fs) return;
-    window.fs.deleteDoc(window.fs.doc(window.db, "tasks", taskId));
+    window.fs.deleteDoc(window.fs.doc(window.db, "tasks", taskId))
+      .then(() => console.log('[Store] deleteTask success:', taskId))
+      .catch(err => console.error('[Store] deleteTask error:', err));
     this.sidePanel = null;
     document.getElementById('side-panel').classList.remove('open');
     this.toast(`Задача «${t.name}» удалена ✓`);
@@ -611,7 +625,9 @@ const App = {
     if (!window.fs) return;
     const updateData = { status: newSt };
     if (newSt === 'done') updateData.progress = 100;
-    window.fs.updateDoc(window.fs.doc(window.db, "tasks", task.id), updateData);
+    window.fs.updateDoc(window.fs.doc(window.db, "tasks", task.id), updateData)
+      .then(() => console.log('[Store] drop (updateStatus) success:', task.id, '->', newSt))
+      .catch(err => console.error('[Store] drop error:', err));
     this.toast(`«${task.name}» → ${this.statusLabel(newSt)}`);
   },
 
@@ -652,10 +668,12 @@ const App = {
       deps: []
     };
     if (window.fs) {
-      window.fs.addDoc(window.fs.collection(window.db, "tasks"), task).catch(err => {
-        console.error('[Store] addDoc failed:', err);
-        App.toast(`Ошибка сохранения: ${err.message}`);
-      });
+      window.fs.addDoc(window.fs.collection(window.db, "tasks"), task)
+        .then(docRef => console.log('[Store] addDoc success, new task id:', docRef.id))
+        .catch(err => {
+          console.error('[Store] addDoc failed:', err);
+          App.toast(`Ошибка сохранения: ${err.message}`);
+        });
     }
     this.closeModal();
     this.toast(`Задача «${name}» добавлена ✓`);
