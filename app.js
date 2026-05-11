@@ -628,7 +628,7 @@ const App = {
     document.getElementById('modal-overlay').classList.remove('active');
   },
 
-  async saveTask(e) {
+  saveTask(e) {
     e.preventDefault();
     const name = document.getElementById('f-name').value.trim();
     if (!name) return;
@@ -652,7 +652,10 @@ const App = {
       deps: []
     };
     if (window.fs) {
-      await window.fs.addDoc(window.fs.collection(window.db, "tasks"), task);
+      window.fs.addDoc(window.fs.collection(window.db, "tasks"), task).catch(err => {
+        console.error('[Store] addDoc failed:', err);
+        App.toast(`Ошибка сохранения: ${err.message}`);
+      });
     }
     this.closeModal();
     this.toast(`Задача «${name}» добавлена ✓`);
